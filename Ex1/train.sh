@@ -1,0 +1,1 @@
+python ../neural_style/neural_style.py train --dataset /mnt/lustre/zhangyujing/face_data/COCO_train/  --style-image ../styles/wave_crop.jpg  --save-model-dir ../Ex1/snapshot/  --epochs 2 --cuda 1 --style-weight 1e10
