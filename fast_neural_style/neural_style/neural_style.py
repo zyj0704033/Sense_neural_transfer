@@ -140,6 +140,8 @@ def train(args):
 def stylize(args):
     content_image = utils.load_image(args.content_image, scale=args.content_scale)
     content_transform = transforms.Compose([
+	transforms.Resize(256),
+        transforms.CenterCrop(256),
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255))
     ])
