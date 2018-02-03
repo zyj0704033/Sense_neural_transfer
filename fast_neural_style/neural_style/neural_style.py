@@ -15,6 +15,7 @@ import utils
 from transformer_net import TransformerNet
 from vgg import Vgg16
 
+from PIL import Image
 
 def check_paths(args):
     try:
@@ -138,32 +139,61 @@ def train(args):
 
 
 def stylize(args):
-    content_image = utils.load_image(args.content_image, scale=args.content_scale)
-    content_transform = transforms.Compose([
-	transforms.Resize(256),
-        transforms.CenterCrop(256),
-        transforms.ToTensor(),
-        transforms.Lambda(lambda x: x.mul(255))
-    ])
-    content_image = content_transform(content_image)
-    content_image = content_image.unsqueeze(0)
-    if args.cuda:
-        content_image = content_image.cuda()
-    content_image = Variable(content_image, volatile=True)
+    if args.test_mode == 'file':
+        style_model = TransformerNet()
+        style_model = torch.nn.DataParallel(style_model,device_ids=[0])
+        style_model.load_state_dict(torch.load(args.model))
+        if args.cuda:
+            style_model.cuda()
+        content_transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(256),
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.mul(255))
+        ])
+        test_file = args.test_file
+        output_file = args.output_file
+        i = 0
+        for filename in os.listdir(test_file):
+            i += 1
+            content_image = Image.open(test_file+'/'+filename)
+            content_image = content_transform(content_image)
+            content_image = content_image.unsqueeze(0)
+            if args.cuda:
+                content_image = content_image.cuda()
+                content_image = Variable(content_image, volatile=True)
+                output = style_model(content_image)
+            if args.cuda:
+                output = output.cpu()
+            output_data = output.data[0]
+            utils.save_image(output_file+str(i)+'.jpg',output_data)
 
-    style_model = TransformerNet()
-    style_model = torch.nn.DataParallel(style_model,device_ids=[0])
-    style_model.load_state_dict(torch.load(args.model))
-    if args.cuda:
-        style_model.cuda()
-    output = style_model(content_image)
-    if args.cuda:
-        output = output.cpu()
-    print('output size')
-    print(output.size())
-    print(output.data[0])
-    output_data = output.data[0]
-    utils.save_image(args.output_image, output_data)
+
+
+    else:
+        content_image = utils.load_image(args.content_image, scale=args.content_scale)
+        content_transform = transforms.Compose([
+        transforms.Resize(256),
+            transforms.CenterCrop(256),
+            transforms.ToTensor(),
+            transforms.Lambda(lambda x: x.mul(255))
+        ])
+        content_image = content_transform(content_image)
+        content_image = content_image.unsqueeze(0)
+        if args.cuda:
+            content_image = content_image.cuda()
+        content_image = Variable(content_image, volatile=True)
+
+        style_model = TransformerNet()
+        style_model = torch.nn.DataParallel(style_model,device_ids=[0])
+        style_model.load_state_dict(torch.load(args.model))
+        if args.cuda:
+            style_model.cuda()
+        output = style_model(content_image)
+        if args.cuda:
+            output = output.cpu()
+        output_data = output.data[0]
+        utils.save_image(args.output_image, output_data)
 
 
 def main():
@@ -204,16 +234,23 @@ def main():
                                   help="number of batches after which a checkpoint of the trained model will be created")
 
     eval_arg_parser = subparsers.add_parser("eval", help="parser for evaluation/stylizing arguments")
-    eval_arg_parser.add_argument("--content-image", type=str, required=True,
+    eval_arg_parser.add_argument("--content-image", type=str, 
                                  help="path to content image you want to stylize")
     eval_arg_parser.add_argument("--content-scale", type=float, default=None,
                                  help="factor for scaling down the content image")
-    eval_arg_parser.add_argument("--output-image", type=str, required=True,
+    eval_arg_parser.add_argument("--output-image", type=str, 
                                  help="path for saving the output image")
     eval_arg_parser.add_argument("--model", type=str, required=True,
                                  help="saved model to be used for stylizing the image")
     eval_arg_parser.add_argument("--cuda", type=int, required=True,
                                  help="set it to 1 for running on GPU, 0 for CPU")
+    eval_arg_parser.add_argument("--test_mode", type=str, required=True,
+                                 help="set to test an image or a single image,file or image",default='file')
+    eval_arg_parser.add_argument("--test_file", type=str,
+                                 help="the content images file which need to transfer",default='./images/meitu_test')
+    eval_arg_parser.add_argument("--output_file", type=str,
+                                 help="the file to save the transfered image",default='./images/visualize/test/')
+    
 
     args = main_arg_parser.parse_args()
 
