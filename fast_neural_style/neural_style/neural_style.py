@@ -232,6 +232,10 @@ def main():
                                   help="number of images after which the training loss is logged, default is 500")
     train_arg_parser.add_argument("--checkpoint-interval", type=int, default=2000,
                                   help="number of batches after which a checkpoint of the trained model will be created")
+    train_arg_parser.add_argument("--clamp_min",type=float,default=0.7,
+                                  help="the lower bound of modified matrix")
+    train_arg_parser.add_argument("--clamp_max",type=float,default=5.0,
+                                  help="the upper bound of modified matrix")                              
 
     eval_arg_parser = subparsers.add_parser("eval", help="parser for evaluation/stylizing arguments")
     eval_arg_parser.add_argument("--content-image", type=str, 
