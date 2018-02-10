@@ -13,7 +13,7 @@ from torchvision import transforms
 
 import utils
 from transformer_net import TransformerNet
-import face_alignment_net
+import face_alignment_three_channels
 
 
 def check_paths(args):
@@ -36,24 +36,22 @@ def train(args):
 
     transform = transforms.Compose([
         transforms.Resize(args.image_size),
-        transforms.CenterCrop(112),
+        transforms.CenterCrop(256),
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255))
     ])
     train_dataset = datasets.ImageFolder(args.dataset, transform)
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size,num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size,num_workers=32)
 
     transformer = TransformerNet()
     optimizer = Adam(transformer.parameters(), args.lr)
     mse_loss = torch.nn.MSELoss()
 
-    model = face_alignment_net.get_model()
-    for parm in model.parameters():
-        parm.requires_grad = True
+    model = face_alignment_three_channels.get_model()
+    
     style_transform = transforms.Compose([
         transforms.Resize(args.image_size),
-        transforms.CenterCrop(112),
-        transforms.Grayscale(),
+        transforms.CenterCrop(256),
         transforms.ToTensor(),
         transforms.Lambda(lambda x: x.mul(255))
     ])
@@ -72,7 +70,7 @@ def train(args):
         style = style.cuda()
 
     style_v = Variable(style)
-    style_v = utils.normalize(style_v)
+    #style_v = utils.normalize(style_v)
     features_style = model(style_v)
     gram_style = [utils.gram_matrix(y) for y in features_style]
 
@@ -90,16 +88,7 @@ def train(args):
                 x = x.cuda()
 
             y = transformer(x)
-            
-
-            x = x[:,0,:,:]*0.299 + x[:,1,:,:]*0.587 + x[:,2,:,:]*0.114
-            x.unsqueeze_(1)
-            y = y[:,0,:,:]*0.299 + y[:,1,:,:]*0.587 + y[:,2,:,:]*0.114
-            y.unsqueeze_(1)
-
-            y = utils.normalize(y)
-            x = utils.normalize(x)
-
+        
             features_y = model(y)
             features_x = model(x)
 
@@ -196,7 +185,7 @@ def main():
                                   help="path to folder where trained model will be saved.")
     train_arg_parser.add_argument("--checkpoint-model-dir", type=str, default=None,
                                   help="path to folder where checkpoints of trained models will be saved")
-    train_arg_parser.add_argument("--image-size", type=int, default=168,
+    train_arg_parser.add_argument("--image-size", type=int, default=256,
                                   help="size of training images, default is 256 X 256")
     train_arg_parser.add_argument("--style-size", type=int, default=None,
                                   help="size of style-image, default is the original size of style image")

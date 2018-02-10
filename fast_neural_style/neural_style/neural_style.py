@@ -146,7 +146,7 @@ def stylize(args):
         if args.cuda:
             style_model.cuda()
         content_transform = transforms.Compose([
-            transforms.Resize(256),
+            #transforms.Resize(256),
             transforms.CenterCrop(256),
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x.mul(255))
@@ -173,7 +173,7 @@ def stylize(args):
     else:
         content_image = utils.load_image(args.content_image, scale=args.content_scale)
         content_transform = transforms.Compose([
-        transforms.Resize(256),
+            #transforms.Resize(256),
             transforms.CenterCrop(256),
             transforms.ToTensor(),
             transforms.Lambda(lambda x: x.mul(255))
